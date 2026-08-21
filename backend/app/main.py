@@ -9,6 +9,7 @@ from app.api.routers.entertainment_log import router as entertainment_log_router
 from app.api.routers.media import router as entertainment_router
 from app.api.routers.watchlist import router as watchlist_router
 from app.api.routers.rating import router as rating_router
+from app.api.routers.review import router as review_router
 
 from app.models.user import User
 from app.models.entertainment import Entertainment
@@ -19,7 +20,7 @@ from app.models.book import BookDetails, Author
 from app.models.entertainment_log import EntertainmentLog
 from app.models.watchlist import Watchlist
 from app.models.rating import Rating
-
+from app.models.review import Review
 
 
 app = FastAPI(
@@ -44,6 +45,7 @@ app.include_router(entertainment_router)
 app.include_router(auth_router)
 app.include_router(watchlist_router)
 app.include_router(rating_router)
+app.include_router(review_router)
 
 Base.metadata.create_all(bind=engine)
 

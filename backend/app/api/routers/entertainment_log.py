@@ -1,15 +1,25 @@
-from fastapi import APIRouter, Depends,HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
+from app.core.security import get_current_user
+
+from app.models.user import User
+
 from app.schemas.entertainment_log import (
     EntertainmentLogCreate,
     EntertainmentLogResponse,
     EntertainmentLogUpdate
 )
-from app.models.entertainment_log import EntertainmentLog
-from app.core.security import get_current_user
-from app.models.user import User
+
+from app.services.entertainment_log_service import (
+    create_log,
+    get_logs,
+    get_log,
+    update_log,
+    delete_log
+)
+
 
 router = APIRouter(
     prefix="/logs",
@@ -21,119 +31,79 @@ router = APIRouter(
     "/",
     response_model=EntertainmentLogResponse
 )
-def create_log(
-    log_data: EntertainmentLogCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+async def create_entertainment_log(
+    request: EntertainmentLogCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    new_log = EntertainmentLog(
-        user_id=current_user.id,
-        entertainment_id=log_data.entertainment_id,
-        rating=log_data.rating,
-        review=log_data.review,
-        logged_at=log_data.logged_at
+    return create_log(
+        db=db,
+        user=current_user,
+        entertainment_id=request.entertainment_id,
+        action=request.action,
+        logged_at=request.logged_at
     )
-
-    db.add(new_log)
-    db.commit()
-    db.refresh(new_log)
-
-    return new_log
 
 
 @router.get(
     "/",
     response_model=list[EntertainmentLogResponse]
 )
-def get_my_logs(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+async def get_user_logs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    logs = db.query(EntertainmentLog).filter(
-        EntertainmentLog.user_id == current_user.id
-    ).all()
-
-    return logs
-
+    return get_logs(
+        db=db,
+        user=current_user
+    )
 
 
 @router.get(
     "/{log_id}",
     response_model=EntertainmentLogResponse
 )
-def get_log(
+async def get_entertainment_log(
     log_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    log = db.query(EntertainmentLog).filter(
-        EntertainmentLog.id == log_id,
-        EntertainmentLog.user_id == current_user.id
-    ).first()
+    return get_log(
+        db=db,
+        user=current_user,
+        log_id=log_id
+    )
 
-    if not log:
-        raise HTTPException(
-            status_code=404,
-            detail="Log not found"
-        )
-
-    return log
 
 @router.put(
     "/{log_id}",
     response_model=EntertainmentLogResponse
 )
-def update_log(
+async def update_entertainment_log(
     log_id: int,
-    log_data: EntertainmentLogUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    request: EntertainmentLogUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    log = db.query(EntertainmentLog).filter(
-            EntertainmentLog.id == log_id,
-            EntertainmentLog.user_id == current_user.id
-        ).first()
-
-    if not log:
-        raise HTTPException(
-            status_code=404,
-            detail="Log not found"
-        )
-    if "rating" in log_data.model_fields_set:
-        log.rating = log_data.rating
-
-    if "review" in log_data.model_fields_set:
-        log.review = log_data.review
-
-    if "logged_at" in log_data.model_fields_set:
-        log.logged_at = log_data.logged_at
-
-    db.commit()
-    db.refresh(log)
-
-    return log
+    return update_log(
+        db=db,
+        user=current_user,
+        log_id=log_id,
+        action=request.action,
+        logged_at=request.logged_at
+    )
 
 
-@router.delete("/{log_id}")
-def delete_log(
+@router.delete(
+    "/{log_id}"
+)
+async def delete_entertainment_log(
     log_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    log = db.query(EntertainmentLog).filter(
-        EntertainmentLog.id == log_id,
-        EntertainmentLog.user_id == current_user.id
-    ).first()
-
-    if not log:
-        raise HTTPException(
-            status_code=404,
-            detail="Log not found"
-        )
-
-    db.delete(log)
-    db.commit()
-
-    return {
-        "message": "Log deleted successfully"
-    }
+    return delete_log(
+        db=db,
+        user=current_user,
+        log_id=log_id
+    )

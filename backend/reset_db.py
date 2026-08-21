@@ -1,19 +1,30 @@
-from app.database.database import Base, engine
+from sqlalchemy import text
 
-# Import models so SQLAlchemy registers them
-from app.models import entertainment
-from app.models import movie
-from app.models import series
-from app.models import game
-from app.models import book
-from app.models import entertainment_log
-from app.models import user
+from app.database.database import engine, Base
+
+# Import all models so SQLAlchemy knows about them
+from app.models.user import User
+from app.models.entertainment import Entertainment
+from app.models.watchlist import Watchlist
+from app.models.rating import Rating
+from app.models.review import Review
+from app.models.entertainment_log import EntertainmentLog
+# import your other models too
 
 
-print("Tables known to SQLAlchemy:")
-print(Base.metadata.tables.keys())
+with engine.connect() as connection:
 
-Base.metadata.drop_all(bind=engine)
+    connection.execute(
+        text("DROP SCHEMA public CASCADE")
+    )
+
+    connection.execute(
+        text("CREATE SCHEMA public")
+    )
+
+    connection.commit()
+
+
 Base.metadata.create_all(bind=engine)
 
-print("Database tables recreated successfully.")
+print("Database reset successfully.")

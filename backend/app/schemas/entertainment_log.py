@@ -1,19 +1,11 @@
 from datetime import datetime
-
+from app.models.entertainment_log import LogAction
 from pydantic import BaseModel, Field
-
+from app.schemas.entertainment import MediaResponse
 
 class EntertainmentLogCreate(BaseModel):
     entertainment_id: int
-
-    rating: float | None = Field(
-        default=None,
-        ge=0,
-        le=10
-    )
-
-    review: str | None = None
-
+    action: LogAction
     logged_at: datetime
 
 
@@ -21,22 +13,11 @@ class EntertainmentLogResponse(BaseModel):
     id: int
     user_id: int
     entertainment_id: int
-    rating: float | None
-    review: str | None
+    action: LogAction
     logged_at: datetime
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
+    media: MediaResponse
 class EntertainmentLogUpdate(BaseModel):
-    rating: float | None = Field(
-        default=None,
-        ge=0,
-        le=10
-    )
-
-    review: str | None = None
-
+    action: LogAction | None = None
     logged_at: datetime | None = None

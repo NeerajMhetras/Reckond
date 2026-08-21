@@ -12,3 +12,4 @@ class User(Base):
     entertainment_logs = relationship("EntertainmentLog",back_populates="user",cascade="all, delete-orphan")
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
     ratings = relationship("Rating", back_populates="user", cascade="all, delete-orphan")
+    reviews = relationship("Review",back_populates="user",cascade="all, delete-orphan")

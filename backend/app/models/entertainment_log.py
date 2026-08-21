@@ -1,13 +1,13 @@
 from datetime import datetime
 
+from enum import Enum
+
 from sqlalchemy import (
     Column,
     Integer,
-    Float,
-    Text,
     DateTime,
     ForeignKey,
-    CheckConstraint
+    Enum as SQLEnum
 )
 
 from sqlalchemy.orm import relationship
@@ -15,20 +15,15 @@ from sqlalchemy.orm import relationship
 from app.database.database import Base
 
 
+class LogAction(str, Enum):
+    WATCHED = "watched"
+    READ = "read"
+    PLAYED = "played"
+    COMPLETED = "completed"
+
+
 class EntertainmentLog(Base):
     __tablename__ = "entertainment_logs"
-
-    __table_args__ = (
-        CheckConstraint(
-            "rating >= 0 AND rating <= 10",
-            name="rating_between_0_and_10"
-        ),
-
-        CheckConstraint(
-            "rating * 2 = CAST(rating * 2 AS INTEGER)",
-            name="rating_in_half_steps"
-        ),
-    )
 
     id = Column(
         Integer,
@@ -54,14 +49,9 @@ class EntertainmentLog(Base):
         nullable=False
     )
 
-    rating = Column(
-        Float,
-        nullable=True
-    )
-
-    review = Column(
-        Text,
-        nullable=True
+    action = Column(
+        SQLEnum(LogAction),
+        nullable=False
     )
 
     logged_at = Column(
