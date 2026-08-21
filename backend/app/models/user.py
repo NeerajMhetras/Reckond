@@ -11,3 +11,4 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     entertainment_logs = relationship("EntertainmentLog",back_populates="user",cascade="all, delete-orphan")
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
+    ratings = relationship("Rating", back_populates="user", cascade="all, delete-orphan")

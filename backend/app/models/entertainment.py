@@ -49,3 +49,5 @@ class Entertainment(Base):
     logs = relationship("EntertainmentLog",back_populates="entertainment",cascade="all, delete-orphan")
 
     watchlist = relationship("Watchlist", back_populates="entertainment",cascade="all, delete-orphan")
+
+    ratings = relationship("Rating", back_populates="entertainment", cascade="all, delete-orphan")
