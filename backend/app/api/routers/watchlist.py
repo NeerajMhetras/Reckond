@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
 from app.core.security import get_current_user
-from app.models.user import User
-from app.schemas.watchlist import (
+from app.models.user.user import User
+from app.schemas.interactions.watchlist import (
     WatchlistCreate,
     WatchlistResponse
 )

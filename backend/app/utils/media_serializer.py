@@ -1,4 +1,4 @@
-from app.models.entertainment import MediaType
+from app.models.media.entertainment import MediaType
 
 
 def get_media_details(media):

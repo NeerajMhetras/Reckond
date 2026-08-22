@@ -1,8 +1,8 @@
 import httpx
 from datetime import datetime
 
-from app.models.entertainment import MediaType
-from app.schemas.search import SearchResult
+from app.models.media.entertainment import MediaType
+from app.schemas.media.search import SearchResult
 
 
 class IGDBProvider:

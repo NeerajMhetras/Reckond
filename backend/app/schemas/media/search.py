@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.models.entertainment import MediaType
+from app.models.media.entertainment import MediaType
 
 
 class SearchResult(BaseModel):

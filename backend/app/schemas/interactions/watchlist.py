@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.schemas.entertainment import MediaResponse
+from app.schemas.media.entertainment import MediaResponse
 
 
 class WatchlistCreate(BaseModel):

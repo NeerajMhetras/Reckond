@@ -1,9 +1,9 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.rating import Rating
-from app.models.entertainment import Entertainment
-from app.models.user import User
+from app.models.interactions.rating import Rating
+from app.models.media.entertainment import Entertainment
+from app.models.user.user import User
 
 from app.utils.media_serializer import build_media_response
 

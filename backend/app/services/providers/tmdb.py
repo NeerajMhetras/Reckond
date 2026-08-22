@@ -1,10 +1,10 @@
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import httpx
 
-from app.schemas.search import SearchResult
-from app.models.entertainment import MediaType
-from app.models.entertainment import MediaType
-from app.models.series import SeriesType, AnimationType
+from app.schemas.media.search import SearchResult
+from app.models.media.entertainment import MediaType
+from app.models.media.entertainment import MediaType
+from app.models.media.series import SeriesType, AnimationType
 
 
 tmdb_retry = retry(

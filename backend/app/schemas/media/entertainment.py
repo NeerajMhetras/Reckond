@@ -1,5 +1,5 @@
 from pydantic import BaseModel,ConfigDict
-from app.models.entertainment import MediaType
+from app.models.media.entertainment import MediaType
 from datetime import date
 from typing import Any
 

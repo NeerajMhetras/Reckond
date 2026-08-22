@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.schemas.entertainment import MediaResponse
+from app.schemas.media.entertainment import MediaResponse
 
 
 class RatingCreate(BaseModel):

@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
 
-from app.models.entertainment import Entertainment, MediaType
-from app.models.movie import MovieDetails
-from app.models.series import SeriesDetails
-from app.models.book import BookDetails,Author
-from app.models.game import Platform,GameDetails
+from app.models.media.entertainment import Entertainment, MediaType
+from app.models.media.movie import MovieDetails
+from app.models.media.series import SeriesDetails
+from app.models.media.book import BookDetails,Author
+from app.models.media.game import Platform,GameDetails
 
 
 from app.services.providers.tmdb import TMDBProvider

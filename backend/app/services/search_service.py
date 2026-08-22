@@ -1,4 +1,4 @@
-from app.models.entertainment import MediaType
+from app.models.media.entertainment import MediaType
 from app.services.providers.tmdb import TMDBProvider
 from app.services.providers.google_books import GoogleBooksProvider
 from app.services.providers.igdb import IGDBProvider

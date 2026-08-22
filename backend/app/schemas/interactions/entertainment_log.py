@@ -1,7 +1,7 @@
 from datetime import datetime
-from app.models.entertainment_log import LogAction
+from app.models.interactions.entertainment_log import LogAction
 from pydantic import BaseModel, Field
-from app.schemas.entertainment import MediaResponse
+from app.schemas.media.entertainment import MediaResponse
 
 class EntertainmentLogCreate(BaseModel):
     entertainment_id: int

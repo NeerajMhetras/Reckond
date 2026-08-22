@@ -5,10 +5,10 @@ from app.core.config import settings
 
 from app.database.dependencies import get_db
 
-from app.models.entertainment import MediaType
+from app.models.media.entertainment import MediaType
 
-from app.schemas.search import SearchResult
-from app.schemas.entertainment import MediaResponse,MediaImportRequest, MediaListResponse
+from app.schemas.media.search import SearchResult
+from app.schemas.media.entertainment import MediaResponse,MediaImportRequest, MediaListResponse
 
 from app.services.providers.tmdb import TMDBProvider
 from app.services.providers.google_books import GoogleBooksProvider

@@ -11,16 +11,16 @@ from app.api.routers.watchlist import router as watchlist_router
 from app.api.routers.rating import router as rating_router
 from app.api.routers.review import router as review_router
 
-from app.models.user import User
-from app.models.entertainment import Entertainment
-from app.models.movie import MovieDetails
-from app.models.series import SeriesDetails
-from app.models.game import GameDetails,Platform
-from app.models.book import BookDetails, Author
-from app.models.entertainment_log import EntertainmentLog
-from app.models.watchlist import Watchlist
-from app.models.rating import Rating
-from app.models.review import Review
+from app.models.user.user import User
+from app.models.media.entertainment import Entertainment
+from app.models.media.movie import MovieDetails
+from app.models.media.series import SeriesDetails
+from app.models.media.game import GameDetails,Platform
+from app.models.media.book import BookDetails, Author
+from app.models.interactions.entertainment_log import EntertainmentLog
+from app.models.interactions.watchlist import Watchlist
+from app.models.interactions.rating import Rating
+from app.models.interactions.review import Review
 
 
 app = FastAPI(

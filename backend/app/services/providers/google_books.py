@@ -1,5 +1,5 @@
 import httpx
-from app.schemas.entertainment import MediaType
+from app.schemas.media.entertainment import MediaType
 from datetime import date
 class GoogleBooksProvider:
 

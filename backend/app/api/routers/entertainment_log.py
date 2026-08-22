@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from app.database.dependencies import get_db
 from app.core.security import get_current_user
 
-from app.models.user import User
+from app.models.user.user import User
 
-from app.schemas.entertainment_log import (
+from app.schemas.interactions.entertainment_log import (
     EntertainmentLogCreate,
     EntertainmentLogResponse,
     EntertainmentLogUpdate

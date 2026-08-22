@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from app.database.dependencies import get_db
 from app.core.security import get_current_user
 
-from app.models.user import User
+from app.models.user.user import User
 
-from app.schemas.rating import (
+from app.schemas.interactions.rating import (
     RatingCreate,
     RatingResponse
 )

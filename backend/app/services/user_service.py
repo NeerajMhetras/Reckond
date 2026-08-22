@@ -3,8 +3,8 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.models.user import User
-from app.schemas.user import UserCreate,UserLogin
+from app.models.user.user import User
+from app.schemas.user.user import UserCreate,UserLogin
 from app.core.security import hash_password,verify_password,create_access_token
 
 

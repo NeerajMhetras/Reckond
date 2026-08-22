@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 
 from app.database.dependencies import get_db
-from app.models.user import User
+from app.models.user.user import User
 
 from app.core.config import settings
 
