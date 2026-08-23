@@ -93,24 +93,6 @@ async def edit_review(
         content=request.content
     )
 
-@router.put(
-    "/{entertainment_id}",
-    response_model=ReviewResponse
-)
-async def edit_review(
-    entertainment_id: int,
-    request: ReviewUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-
-    return update_review(
-        db=db,
-        user=current_user,
-        entertainment_id=entertainment_id,
-        content=request.content
-    )
-
 @router.delete(
     "/{entertainment_id}"
 )
