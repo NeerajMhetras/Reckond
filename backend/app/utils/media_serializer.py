@@ -13,7 +13,47 @@ def get_media_details(media):
         return {
             "runtime": details.runtime,
             "budget": details.budget,
-            "revenue": details.revenue
+            "revenue": details.revenue,
+
+            "genres": [
+                {
+                    "id": genre.id,
+                    "name": genre.name
+                }
+                for genre in details.genres
+            ],
+
+            "keywords": [
+                {
+                    "id": keyword.id,
+                    "name": keyword.name
+                }
+                for keyword in details.keywords
+            ],
+
+            "cast": [
+                {
+                    "person": {
+                        "id": cast.person.id,
+                        "name": cast.person.name
+                    },
+                    "character": cast.character,
+                    "cast_order": cast.cast_order
+                }
+                for cast in details.cast
+            ],
+
+            "crew": [
+                {
+                    "person": {
+                        "id": crew.person.id,
+                        "name": crew.person.name
+                    },
+                    "department": crew.department,
+                    "job": crew.job
+                }
+                for crew in details.crew
+            ]
         }
 
     if media.media_type == MediaType.SERIES:

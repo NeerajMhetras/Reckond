@@ -13,10 +13,10 @@ from app.api.routers.review import router as review_router
 
 from app.models.user.user import User
 from app.models.media.entertainment import Entertainment
-from app.models.media.movie import MovieDetails
-from app.models.media.series import SeriesDetails
-from app.models.media.game import GameDetails,Platform
-from app.models.media.book import BookDetails, Author
+from app.models.media.movie.movie import MovieDetails
+from app.models.media.series.series import SeriesDetails
+from app.models.media.game.game import GameDetails,Platform
+from app.models.media.book.book import BookDetails, Author
 from app.models.interactions.entertainment_log import EntertainmentLog
 from app.models.interactions.watchlist import Watchlist
 from app.models.interactions.rating import Rating

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.models.media.series import SeriesType, AnimationType
+from app.models.media.series.series import SeriesType, AnimationType
 
 
 class SeriesDetailsResponse(BaseModel):

@@ -1,10 +1,15 @@
 from sqlalchemy.orm import Session
 
 from app.models.media.entertainment import Entertainment, MediaType
-from app.models.media.movie import MovieDetails
-from app.models.media.series import SeriesDetails
-from app.models.media.book import BookDetails,Author
-from app.models.media.game import Platform,GameDetails
+from app.models.media.movie.movie import MovieDetails
+from app.models.media.series.series import SeriesDetails
+from app.models.media.book.book import BookDetails,Author
+from app.models.media.game.game import Platform,GameDetails
+from app.models.media.movie.genre import Genre
+from app.models.media.movie.keyword import Keyword
+from app.models.media.common.person import Person
+from app.models.media.movie.cast import MovieCast
+from app.models.media.movie.crew import MovieCrew
 
 
 from app.services.providers.tmdb import TMDBProvider
@@ -89,7 +94,116 @@ class MediaService:
             )
 
             db.add(movie_details)
+            db.flush()
 
+            for genre_data in media_data.get("genres", []):
+                genre = (
+                    db.query(Genre)
+                    .filter(
+                        Genre.external_id == genre_data["external_id"]
+                    )
+                    .first()
+                )
+
+                if not genre:
+                    genre = Genre(
+                        external_id=genre_data["external_id"],
+                        name=genre_data["name"]
+                    )
+
+                    db.add(genre)
+                    db.flush()
+
+                movie_details.genres.append(genre)
+
+            for keyword_data in media_data.get("keywords", []):
+
+                keyword = (
+                    db.query(Keyword)
+                    .filter(
+                        Keyword.external_id == keyword_data["external_id"]
+                    )
+                    .first()
+                )
+
+                if not keyword:
+                    keyword = Keyword(
+                        external_id=keyword_data["external_id"],
+                        name=keyword_data["name"]
+                    )
+
+                    db.add(keyword)
+                    db.flush()
+
+                movie_details.keywords.append(keyword)      
+
+            for cast_data in media_data.get("cast", [])[:20]:
+                person = (
+                    db.query(Person)
+                    .filter(
+                        Person.external_id == cast_data["external_id"]
+                    )
+                    .first()
+                )
+
+                if not person:
+                    person = Person(
+                        external_id=cast_data["external_id"],
+                        name=cast_data["name"]
+                    )
+
+                    db.add(person)
+                    db.flush()
+
+                movie_cast = MovieCast(
+                    movie_id=movie_details.id,
+                    person_id=person.id,
+                    character=cast_data.get("character"),
+                    cast_order=cast_data.get("cast_order")
+                )
+
+                db.add(movie_cast)
+
+            important_jobs = {
+                "Director",
+                "Writer",
+                "Screenplay",
+                "Story",
+                "Original Music Composer",
+                "Director of Photography"
+            }
+
+            for crew_data in media_data.get("crew", []):
+                if crew_data.get("job") not in important_jobs:
+                    continue
+
+                person = (
+                    db.query(Person)
+                    .filter(
+                        Person.external_id == crew_data["external_id"]
+                    )
+                    .first()
+                )
+
+                if not person:
+                    person = Person(
+                        external_id=crew_data["external_id"],
+                        name=crew_data["name"]
+                    )
+
+                    db.add(person)
+                    db.flush()
+
+                movie_crew = MovieCrew(
+                    movie_id=movie_details.id,
+                    person_id=person.id,
+                    department=crew_data.get("department"),
+                    job=crew_data.get("job")
+                )
+
+                db.add(movie_crew)
+
+            
         # -------------------------
         # SERIES
         # -------------------------

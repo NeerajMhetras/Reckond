@@ -3,8 +3,7 @@ import httpx
 
 from app.schemas.media.search import SearchResult
 from app.models.media.entertainment import MediaType
-from app.models.media.entertainment import MediaType
-from app.models.media.series import SeriesType, AnimationType
+from app.models.media.series.series import SeriesType, AnimationType
 
 
 tmdb_retry = retry(
@@ -102,7 +101,8 @@ class TMDBProvider:
             url = f"https://api.themoviedb.org/3/movie/{movie_id}"
     
             params = {
-                "api_key": self.api_key
+                "api_key": self.api_key,
+                "append_to_response": "credits,keywords",
             }
     
             transport = httpx.AsyncHTTPTransport(
@@ -146,21 +146,64 @@ class TMDBProvider:
         )
 
     def _normalize_movie_details(self, movie: dict):
+
+        credits = movie.get("credits", {})
+
         return {
             "external_id": str(movie["id"]),
             "external_source": "TMDB",
+
             "title": movie["title"],
             "description": movie.get("overview"),
+
             "poster_url": (
                 f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
                 if movie.get("poster_path")
                 else None
             ),
+
             "release_date": movie.get("release_date"),
             "language": movie.get("original_language"),
+
             "runtime": movie.get("runtime"),
             "budget": movie.get("budget"),
-            "revenue": movie.get("revenue")
+            "revenue": movie.get("revenue"),
+
+            "genres": [
+                {
+                    "external_id": genre["id"],
+                    "name": genre["name"]
+                }
+                for genre in movie.get("genres", [])
+            ],
+
+            "keywords": [
+                {
+                    "external_id": keyword["id"],
+                    "name": keyword["name"]
+                }
+                for keyword in movie.get("keywords", {}).get("keywords", [])
+            ],
+
+            "cast": [
+                {
+                    "external_id": person["id"],
+                    "name": person["name"],
+                    "character": person.get("character"),
+                    "cast_order": person.get("order")
+                }
+                for person in credits.get("cast", [])
+            ],
+
+            "crew": [
+                {
+                    "external_id": person["id"],
+                    "name": person["name"],
+                    "department": person.get("department"),
+                    "job": person.get("job")
+                }
+                for person in credits.get("crew", [])
+            ]
         }
 
     def _normalize_series_search_results(self, data: dict):

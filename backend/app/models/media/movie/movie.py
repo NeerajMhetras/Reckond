@@ -26,3 +26,27 @@ class MovieDetails(Base):
         "Entertainment",
         back_populates="movie_details"
     )
+
+    genres = relationship(
+        "Genre",
+        secondary="movie_genres",
+        back_populates="movies"
+    )
+
+    keywords = relationship(
+        "Keyword",
+        secondary="movie_keywords",
+        back_populates="movies"
+    )
+
+    cast = relationship(
+        "MovieCast",
+        back_populates="movie",
+        cascade="all, delete-orphan"
+    )
+
+    crew = relationship(
+        "MovieCrew",
+        back_populates="movie",
+        cascade="all, delete-orphan"
+    )
