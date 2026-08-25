@@ -30,3 +30,9 @@ class Keyword(Base):
         secondary="movie_keywords",
         back_populates="keywords"
     )
+
+    series = relationship(
+        "SeriesDetails",
+        secondary="series_keywords",
+        back_populates="keywords"
+    )

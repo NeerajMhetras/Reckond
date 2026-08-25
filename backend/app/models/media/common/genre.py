@@ -30,3 +30,9 @@ class Genre(Base):
         secondary="movie_genres",
         back_populates="genres"
     )
+
+    series = relationship(
+        "SeriesDetails",
+        secondary="series_genres",
+        back_populates="genres"
+    )

@@ -1,12 +1,10 @@
 from app.models.media.entertainment import Entertainment
 
 from app.models.media.common.person import Person
-
+from app.models.media.common.genre import Genre
+from app.models.media.common.keyword import Keyword
 
 from app.models.media.movie.movie import MovieDetails
-from app.models.media.movie.movie import MovieDetails
-from app.models.media.movie.genre import Genre
-from app.models.media.movie.keyword import Keyword
 from app.models.media.movie.cast import MovieCast
 from app.models.media.movie.crew import MovieCrew
 from app.models.media.movie.associations import (
@@ -16,6 +14,13 @@ from app.models.media.movie.associations import (
 
 
 from app.models.media.series.series import SeriesDetails
+from app.models.media.series.cast import SeriesCast
+from app.models.media.series.crew import SeriesCrew
+from app.models.media.series.associations import (
+    series_genres,
+    series_keywords
+)
+
 from app.models.media.book.book import BookDetails
 from app.models.media.game.game import GameDetails
 

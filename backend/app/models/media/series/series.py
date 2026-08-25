@@ -1,6 +1,12 @@
 from enum import Enum
 
-from sqlalchemy import Column, Integer, ForeignKey, Enum as SQLEnum
+from sqlalchemy import (
+    Column,
+    Integer,
+    ForeignKey,
+    Enum as SQLEnum
+)
+
 from sqlalchemy.orm import relationship
 
 from app.database.database import Base
@@ -9,6 +15,7 @@ from app.database.database import Base
 class SeriesType(str, Enum):
     TV = "tv"
     ANIMATED = "animated"
+
 
 class AnimationType(str, Enum):
     ANIME = "anime"
@@ -19,11 +26,18 @@ class AnimationType(str, Enum):
 class SeriesDetails(Base):
     __tablename__ = "series_details"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     entertainment_id = Column(
         Integer,
-        ForeignKey("entertainment.id",ondelete="CASCADE"),
+        ForeignKey(
+            "entertainment.id",
+            ondelete="CASCADE"
+        ),
         nullable=False,
         unique=True
     )
@@ -37,12 +51,42 @@ class SeriesDetails(Base):
         SQLEnum(AnimationType),
         nullable=True
     )
-    
-    number_of_seasons = Column(Integer, nullable=True)
 
-    number_of_episodes = Column(Integer, nullable=True)
+    number_of_seasons = Column(
+        Integer,
+        nullable=True
+    )
+
+    number_of_episodes = Column(
+        Integer,
+        nullable=True
+    )
 
     entertainment = relationship(
         "Entertainment",
         back_populates="series_details"
+    )
+
+    genres = relationship(
+        "Genre",
+        secondary="series_genres",
+        back_populates="series"
+    )
+
+    keywords = relationship(
+        "Keyword",
+        secondary="series_keywords",
+        back_populates="series"
+    )
+
+    cast = relationship(
+        "SeriesCast",
+        back_populates="series",
+        cascade="all, delete-orphan"
+    )
+
+    crew = relationship(
+        "SeriesCrew",
+        back_populates="series",
+        cascade="all, delete-orphan"
     )

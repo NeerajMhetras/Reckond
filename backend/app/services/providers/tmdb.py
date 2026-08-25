@@ -73,7 +73,8 @@ class TMDBProvider:
             url = f"https://api.themoviedb.org/3/tv/{series_id}"
     
             params = {
-                "api_key": self.api_key
+                "api_key": self.api_key,
+                "append_to_response": "credits,keywords"
             }
     
             transport = httpx.AsyncHTTPTransport(
@@ -226,6 +227,7 @@ class TMDBProvider:
         return results
 
     def _normalize_series_details(self, series: dict):
+
         genre_ids = {
             genre["id"]
             for genre in series.get("genres", [])
@@ -236,12 +238,12 @@ class TMDBProvider:
         if is_animated:
             series_type = SeriesType.ANIMATED
 
-            if series.get("original_language") == "ja":
+            language = series.get("original_language")
+
+            if language == "ja":
                 animation_type = AnimationType.ANIME
-
-            elif series.get("original_language") == "en":
+            elif language == "en":
                 animation_type = AnimationType.WESTERN
-
             else:
                 animation_type = AnimationType.OTHER
 
@@ -249,7 +251,72 @@ class TMDBProvider:
             series_type = SeriesType.TV
             animation_type = None
 
+        # -------------------------
+        # Genres
+        # -------------------------
+
+        genres = [
+            {
+                "external_id": genre["id"],
+                "name": genre["name"]
+            }
+            for genre in series.get("genres", [])
+        ]
+
+        # -------------------------
+        # Keywords
+        # -------------------------
+
+        keyword_data = series.get("keywords", {})
+
+        keywords = [
+            {
+                "external_id": keyword["id"],
+                "name": keyword["name"]
+            }
+            for keyword in keyword_data.get("results", [])
+        ]
+
+        # -------------------------
+        # Credits
+        # -------------------------
+
+        credits = series.get("credits", {})
+
+        cast = [
+            {
+                "external_id": person["id"],
+                "name": person["name"],
+                "character": person.get("character"),
+                "cast_order": person.get("order")
+            }
+            for person in credits.get("cast", [])[:20]
+        ]
+        IMPORTANT_CREW_JOBS = {
+            "Director",
+            "Creator",
+            "Executive Producer",
+            "Writer",
+            "Screenplay",
+            "Story"
+        }
+
+        crew = [
+            {
+                "external_id": person["id"],
+                "name": person["name"],
+                "department": person.get("department"),
+                "job": person.get("job")
+            }
+            for person in credits.get("crew", [])[:20]
+            if person.get("job") in IMPORTANT_CREW_JOBS
+        ]
+
         return {
+            # -------------------------
+            # Entertainment
+            # -------------------------
+
             "external_id": str(series["id"]),
             "external_source": "TMDB",
 
@@ -264,13 +331,38 @@ class TMDBProvider:
             ),
 
             "release_date": series.get("first_air_date"),
-            "language": series.get("original_language"),
 
-            "number_of_seasons": series.get("number_of_seasons"),
-            "number_of_episodes": series.get("number_of_episodes"),
+            "language": series.get(
+                "original_language"
+            ),
+
+            "media_type": MediaType.SERIES,
+
+            # -------------------------
+            # SeriesDetails
+            # -------------------------
 
             "series_type": series_type,
+
             "animation_type": animation_type,
 
-            "media_type": MediaType.SERIES
+            "number_of_seasons": series.get(
+                "number_of_seasons"
+            ),
+
+            "number_of_episodes": series.get(
+                "number_of_episodes"
+            ),
+
+            # -------------------------
+            # Recommendation metadata
+            # -------------------------
+
+            "genres": genres,
+
+            "keywords": keywords,
+
+            "cast": cast,
+
+            "crew": crew
         }

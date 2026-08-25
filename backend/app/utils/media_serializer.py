@@ -67,7 +67,47 @@ def get_media_details(media):
             "series_type": details.series_type,
             "animation_type": details.animation_type,
             "number_of_seasons": details.number_of_seasons,
-            "number_of_episodes": details.number_of_episodes
+            "number_of_episodes": details.number_of_episodes,
+
+            "genres": [
+                {
+                    "id": genre.id,
+                    "name": genre.name
+                }
+                for genre in details.genres
+            ],
+
+            "keywords": [
+                {
+                    "id": keyword.id,
+                    "name": keyword.name
+                }
+                for keyword in details.keywords
+            ],
+
+            "cast": [
+                {
+                    "person": {
+                        "id": cast.person.id,
+                        "name": cast.person.name
+                    },
+                    "character": cast.character,
+                    "cast_order": cast.cast_order
+                }
+                for cast in details.cast
+            ],
+
+            "crew": [
+                {
+                    "person": {
+                        "id": crew.person.id,
+                        "name": crew.person.name
+                    },
+                    "department": crew.department,
+                    "job": crew.job
+                }
+                for crew in details.crew
+            ]
         }
 
     if media.media_type == MediaType.BOOK:
@@ -81,6 +121,7 @@ def get_media_details(media):
             "isbn": details.isbn,
             "pages": details.pages,
             "publisher": details.publisher,
+
             "authors": [
                 author.name
                 for author in details.authors
