@@ -8,6 +8,8 @@ from app.models.interactions.rating import Rating
 
 from app.recommendation.content_based import get_similar_media
 
+from app.utils.media_serializer import build_media_response
+
 
 def recommend_for_user(
     db: Session,
@@ -64,7 +66,7 @@ def recommend_for_user(
     liked_ratings = [
         rating
         for rating in ratings
-        if rating.rating >= 7
+        if rating.rating >= 6.5
     ]
 
     if not liked_ratings:
@@ -148,7 +150,9 @@ def recommend_for_user(
 
     return [
         {
-            "media": media_map[media_id],
+            "media": build_media_response(
+                media_map[media_id]
+            ),
             "score": score
         }
         for media_id, score in ranked[:limit]

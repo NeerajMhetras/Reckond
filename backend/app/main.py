@@ -10,6 +10,7 @@ from app.api.routers.media import router as entertainment_router
 from app.api.routers.watchlist import router as watchlist_router
 from app.api.routers.rating import router as rating_router
 from app.api.routers.review import router as review_router
+from app.api.routers.recommendation import router as recommendation_router
 
 from app.models.user.user import User
 from app.models.media.entertainment import Entertainment
@@ -46,6 +47,7 @@ app.include_router(auth_router)
 app.include_router(watchlist_router)
 app.include_router(rating_router)
 app.include_router(review_router)
+app.include_router(recommendation_router)
 
 Base.metadata.create_all(bind=engine)
 
