@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.models.user.user import User
 from app.schemas.user.user import UserCreate,UserLogin
-from app.core.security import hash_password,verify_password,create_access_token
+from app.core.security import hash_password,verify_password,create_access_token,create_refresh_token,decode_refresh_token
 
 
 def create_user(db: Session, user: UserCreate):
@@ -76,10 +76,13 @@ def get_user_by_id(db: Session, user_id: int):
     return user
 
 def login_user(db: Session, form_data: OAuth2PasswordRequestForm):
+    
 
+    email = form_data.username.strip().lower()
+    
     db_user = (
         db.query(User)
-        .filter(User.email == form_data.username)
+        .filter(User.email == email)
         .first()
     )
     if not db_user:
@@ -101,7 +104,32 @@ def login_user(db: Session, form_data: OAuth2PasswordRequestForm):
             "sub": str(db_user.id)
         }
     )
+
+    refresh_token = create_refresh_token(
+        data={
+            "sub": str(db_user.id)
+        }
+    )
     return{
         "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+def refresh_access_token(refresh_token: str):
+
+    user_id = decode_refresh_token(
+        refresh_token
+    )
+
+    access_token = create_access_token(
+        data={
+            "sub": str(user_id)
+        }
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer"
     }

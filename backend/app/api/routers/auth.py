@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
 
-from app.schemas.user.user import Token,UserCreate,UserResponse
+from app.schemas.user.user import Token,UserCreate,UserResponse,RefreshTokenRequest
 
 
-from app.services.user_service import login_user,create_user
+from app.services.user_service import login_user,create_user,refresh_access_token
 
 
 router = APIRouter(
@@ -35,3 +35,14 @@ async def login(
     db: Session = Depends(get_db)
 ):
     return login_user(db, form_data)
+
+
+@router.post(
+    "/refresh",
+    response_model=Token
+)
+async def refresh_token(
+    request: RefreshTokenRequest
+):
+
+    return refresh_access_token(request.refresh_token)

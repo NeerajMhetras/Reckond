@@ -13,6 +13,7 @@ from app.api.routers.review import router as review_router
 from app.api.routers.recommendation import router as recommendation_router
 
 from app.models.user.user import User
+from app.models.user.password_reset_token import PasswordResetToken
 from app.models.media.entertainment import Entertainment
 from app.models.media.movie.movie import MovieDetails
 from app.models.media.series.series import SeriesDetails

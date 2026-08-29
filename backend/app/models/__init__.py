@@ -25,6 +25,7 @@ from app.models.media.book.book import BookDetails
 from app.models.media.game.game import GameDetails
 
 from app.models.user.user import User
+from app.models.user.password_reset_token import PasswordResetToken
 
 from app.models.interactions.watchlist import Watchlist
 from app.models.interactions.rating import Rating

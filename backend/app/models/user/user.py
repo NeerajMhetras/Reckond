@@ -13,3 +13,5 @@ class User(Base):
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
     ratings = relationship("Rating", back_populates="user", cascade="all, delete-orphan")
     reviews = relationship("Review",back_populates="user",cascade="all, delete-orphan")
+    password_reset_tokens = relationship("PasswordResetToken",back_populates="user",cascade="all, delete-orphan")
+    

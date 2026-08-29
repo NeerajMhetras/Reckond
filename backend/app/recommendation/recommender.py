@@ -7,9 +7,28 @@ from app.models.interactions.entertainment_log import EntertainmentLog
 from app.models.interactions.rating import Rating
 
 from app.recommendation.content_based import get_similar_media
+from app.recommendation.popularity import get_popular_media
 
 from app.utils.media_serializer import build_media_response
 
+
+def get_rating_weight(rating: int) -> float:
+    """
+    Convert a 1-10 rating into a preference weight.
+
+    10 -> +1.0
+     9 -> +0.8
+     8 -> +0.6
+     7 -> +0.4
+     6 -> +0.2
+     5 ->  0.0
+     4 -> -0.2
+     3 -> -0.4
+     2 -> -0.6
+     1 -> -0.8
+    """
+
+    return (rating - 5) / 5
 
 def recommend_for_user(
     db: Session,
@@ -28,6 +47,14 @@ def recommend_for_user(
         .all()
     )
 
+    if not ratings:
+
+        return get_popular_media(
+            db=db,
+            user_id=user_id,
+            limit=limit
+        )
+
     # --------------------------------
     # Get user's entertainment logs
     # --------------------------------
@@ -39,10 +66,7 @@ def recommend_for_user(
         )
         .all()
     )
-
-    # Nothing to learn from yet
-    if not ratings:
-        return []
+    
 
     # --------------------------------
     # Items user has already seen
@@ -63,14 +87,7 @@ def recommend_for_user(
     # Find highly-rated items
     # --------------------------------
 
-    liked_ratings = [
-        rating
-        for rating in ratings
-        if rating.rating >= 6.5
-    ]
-
-    if not liked_ratings:
-        return []
+    
 
     # --------------------------------
     # Generate recommendation scores
@@ -78,7 +95,16 @@ def recommend_for_user(
 
     recommendation_scores = defaultdict(float)
 
-    for rating in liked_ratings:
+    for rating in ratings:
+
+        rating_weight = get_rating_weight(
+            rating.rating
+        )
+
+        # A rating of 5 has no positive or negative
+        # influence on recommendations.
+        if rating_weight == 0:
+            continue
 
         similar_items = get_similar_media(
             db=db,
@@ -86,22 +112,11 @@ def recommend_for_user(
             limit=20
         )
 
-        # Convert rating into a weight.
-        #
-        # 10 -> 1.0
-        # 9  -> 0.9
-        # 8  -> 0.8
-        # 7  -> 0.7
-
-        rating_weight = rating.rating / 10
-
         for result in similar_items:
 
             media = result["media"]
             similarity = result["score"]
 
-            # Don't recommend something the
-            # user already knows.
             if media.id in seen_ids:
                 continue
 

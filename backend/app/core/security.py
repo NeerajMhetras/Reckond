@@ -14,6 +14,7 @@ from app.core.config import settings
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -28,23 +29,77 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
-def create_access_token(data: dict):
+def create_token(
+    data: dict,
+    expires_delta: timedelta
+):
 
     to_encode = data.copy()
 
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-    )
+    expire = datetime.now(timezone.utc) + expires_delta
 
-    to_encode.update({"exp": expire})
+    to_encode.update({
+        "exp": expire
+    })
 
-    encoded_jwt = jwt.encode(
+    return jwt.encode(
         to_encode,
         SECRET_KEY,
         algorithm=ALGORITHM
     )
 
-    return encoded_jwt
+def create_access_token(data: dict):
+
+    return create_token(
+        data={
+            **data,
+            "type": "access"
+        },
+        expires_delta=timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+    )
+
+
+def create_refresh_token(data: dict):
+
+    return create_token(
+        data={
+            **data,
+            "type": "refresh"
+        },
+        expires_delta=timedelta(
+            days=REFRESH_TOKEN_EXPIRE_DAYS
+        )
+    )
+
+def decode_refresh_token(refresh_token: str):
+
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Invalid refresh token"
+    )
+
+    try:
+        payload = jwt.decode(
+            refresh_token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+
+        user_id = payload.get("sub")
+        token_type = payload.get("type")
+
+        if user_id is None:
+            raise credentials_exception
+
+        if token_type != "refresh":
+            raise credentials_exception
+
+        return user_id
+
+    except JWTError:
+        raise credentials_exception
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -67,7 +122,11 @@ async def get_current_user(
 
         if user_id is None:
             raise credentials_exception
-        
+
+        token_type = payload.get("type")
+
+        if token_type != "access":
+            raise credentials_exception
 
     except JWTError:
 
