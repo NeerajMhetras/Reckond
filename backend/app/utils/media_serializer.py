@@ -152,6 +152,7 @@ def build_media_response(media):
         "title": media.title,
         "description": media.description,
         "poster_url": media.poster_url,
+        "backdrop_url": media.backdrop_url,
         "release_date": media.release_date,
         "media_type": media.media_type,
         "language": media.language,

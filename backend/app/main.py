@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from sqlalchemy import text
 from app.database.database import engine, Base
@@ -23,11 +25,20 @@ from app.models.interactions.entertainment_log import EntertainmentLog
 from app.models.interactions.watchlist import Watchlist
 from app.models.interactions.rating import Rating
 from app.models.interactions.review import Review
+from app.core.redis import check_redis, close_redis
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    check_redis()
+    yield
+    close_redis()
 
 
 app = FastAPI(
     title = "Unified Entertainment Platform API",
     version = "1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

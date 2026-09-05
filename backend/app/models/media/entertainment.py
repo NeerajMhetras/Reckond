@@ -25,6 +25,8 @@ class Entertainment(Base):
 
     poster_url = Column(String(500), nullable=True)
 
+    backdrop_url = Column(String(500), nullable=True)
+
     release_date = Column(Date, nullable=True)
 
     media_type = Column(

@@ -6,6 +6,7 @@ from app.models.media.entertainment import Entertainment
 from app.models.user.user import User
 
 from app.utils.media_serializer import build_media_response
+from app.core.cache import cache, recommendation_cache_key
 
 
 def create_log(
@@ -39,6 +40,7 @@ def create_log(
     db.add(log)
     db.commit()
     db.refresh(log)
+    cache.delete(recommendation_cache_key(user.id))
 
     return {
         "id": log.id,
@@ -150,6 +152,7 @@ def update_log(
 
     db.commit()
     db.refresh(log)
+    cache.delete(recommendation_cache_key(user.id))
 
     return {
         "id": log.id,
@@ -187,6 +190,7 @@ def delete_log(
 
     db.delete(log)
     db.commit()
+    cache.delete(recommendation_cache_key(user.id))
 
     return {
         "message": "Entertainment log deleted successfully"

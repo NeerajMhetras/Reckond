@@ -6,11 +6,16 @@ from sqlalchemy.orm import Session
 from app.models.interactions.rating import Rating
 
 
-def build_rating_matrix(db: Session):
-    ratings = (
-        db.query(Rating)
-        .all()
-    )
+def build_rating_matrix(db: Session, user_ids=None, entertainment_ids=None):
+    query = db.query(Rating)
+
+    if user_ids is not None:
+        query = query.filter(Rating.user_id.in_(user_ids))
+
+    if entertainment_ids is not None:
+        query = query.filter(Rating.entertainment_id.in_(entertainment_ids))
+
+    ratings = query.all()
 
     matrix = defaultdict(dict)
 
@@ -134,7 +139,28 @@ def get_collaborative_recommendations(
     user_id: int,
     limit: int = 20
 ):
-    matrix = build_rating_matrix(db)
+    user_ratings = (
+        db.query(Rating)
+        .filter(Rating.user_id == user_id)
+        .all()
+    )
+
+    if not user_ratings:
+        return []
+
+    rated_items = {rating.entertainment_id for rating in user_ratings}
+
+    # Only users who rated one of this user's items can contribute to
+    # cosine similarity with that user's item vectors.
+    relevant_user_ids = {
+        rating_user_id
+        for (rating_user_id,) in db.query(Rating.user_id)
+        .filter(Rating.entertainment_id.in_(rated_items))
+        .distinct()
+        .all()
+    }
+
+    matrix = build_rating_matrix(db, user_ids=relevant_user_ids)
     item_vectors = build_item_vectors(matrix)
     user_averages = build_user_averages(matrix)
 

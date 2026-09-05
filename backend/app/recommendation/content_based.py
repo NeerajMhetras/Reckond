@@ -6,19 +6,38 @@ from app.models.media.entertainment import Entertainment
 from app.recommendation.feature_builder import build_feature_text
 
 
-def get_all_media_with_features(db: Session):
+_feature_cache = None
 
-    media_list = (
-        db.query(Entertainment)
+
+def get_all_media_with_features(db: Session):
+    global _feature_cache
+
+    media_ids = tuple(
+        media_id
+        for (media_id,) in db.query(Entertainment.id)
+        .order_by(Entertainment.id)
         .all()
     )
 
-    feature_texts = [
-        build_feature_text(media)
-        for media in media_list
-    ]
+    if _feature_cache and _feature_cache["media_ids"] == media_ids:
+        return _feature_cache["media_ids"], _feature_cache["feature_texts"]
 
-    return media_list, feature_texts
+    media_list = (
+        db.query(Entertainment)
+        .filter(Entertainment.id.in_(media_ids))
+        .order_by(Entertainment.id)
+        .all()
+    )
+
+    feature_texts = [build_feature_text(media) for media in media_list]
+    _feature_cache = {
+        "media_ids": media_ids,
+        "feature_texts": feature_texts,
+        "vectorizer": None,
+        "tfidf_matrix": None,
+    }
+
+    return media_ids, feature_texts
 
 def build_tfidf_matrix(feature_texts):
 
@@ -38,24 +57,27 @@ def get_similar_media(
     limit: int = 10
 ):
 
-    media_list, feature_texts = (
+    media_ids, feature_texts = (
         get_all_media_with_features(db)
     )
 
-    if not media_list:
+    if not media_ids:
         return []
 
-    vectorizer, tfidf_matrix = (
-        build_tfidf_matrix(feature_texts)
-    )
+    global _feature_cache
+    if _feature_cache["tfidf_matrix"] is None:
+        _feature_cache["vectorizer"], _feature_cache["tfidf_matrix"] = build_tfidf_matrix(feature_texts)
 
-    target_index = None
+    tfidf_matrix = _feature_cache["tfidf_matrix"]
+    media_index = {
+        media_id: index
+        for index, media_id in enumerate(media_ids)
+    }
 
-    for index, media in enumerate(media_list):
-
-        if media.id == entertainment_id:
-            target_index = index
-            break
+    try:
+        target_index = media_ids.index(entertainment_id)
+    except ValueError:
+        target_index = None
 
     if target_index is None:
         return []
@@ -67,23 +89,30 @@ def get_similar_media(
 
     ranked_indices = similarity_scores.argsort()[::-1]
 
-    recommendations = []
+    ranked_media_ids = []
 
     for index in ranked_indices:
 
         if index == target_index:
             continue
 
-        recommendations.append(
-            {
-                "media": media_list[index],
-                "score": float(
-                    similarity_scores[index]
-                )
-            }
-        )
+        ranked_media_ids.append(media_ids[index])
 
-        if len(recommendations) >= limit:
+        if len(ranked_media_ids) >= limit:
             break
 
-    return recommendations
+    media_list = (
+        db.query(Entertainment)
+        .filter(Entertainment.id.in_(ranked_media_ids))
+        .all()
+    )
+    media_map = {media.id: media for media in media_list}
+
+    return [
+        {
+            "media": media_map[media_id],
+            "score": float(similarity_scores[media_index[media_id]]),
+        }
+        for media_id in ranked_media_ids
+        if media_id in media_map
+    ]

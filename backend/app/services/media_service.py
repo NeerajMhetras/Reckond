@@ -63,6 +63,19 @@ class MediaService:
         )
 
         if existing:
+            if (
+                media_type in (MediaType.MOVIE, MediaType.SERIES)
+                and not existing.backdrop_url
+            ):
+                if media_type == MediaType.MOVIE:
+                    media_data = await self.tmdb_provider.get_movie_details(external_id)
+                else:
+                    media_data = await self.tmdb_provider.get_series_details(external_id)
+
+                existing.backdrop_url = media_data.get("backdrop_url")
+                db.commit()
+                db.refresh(existing)
+
             return existing
 
         # -------------------------
@@ -79,6 +92,7 @@ class MediaService:
                 title=media_data["title"],
                 description=media_data.get("description"),
                 poster_url=media_data.get("poster_url"),
+                backdrop_url=media_data.get("backdrop_url"),
                 release_date=media_data.get("release_date"),
                 media_type=MediaType.MOVIE,
                 language=media_data.get("language"),
@@ -221,6 +235,7 @@ class MediaService:
                 title=media_data["title"],
                 description=media_data.get("description"),
                 poster_url=media_data.get("poster_url"),
+                backdrop_url=media_data.get("backdrop_url"),
                 release_date=media_data.get("release_date"),
                 media_type=MediaType.SERIES,
                 language=media_data.get("language"),

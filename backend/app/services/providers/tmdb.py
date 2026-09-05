@@ -163,6 +163,12 @@ class TMDBProvider:
                 else None
             ),
 
+            "backdrop_url": (
+                f"https://image.tmdb.org/t/p/w1280{movie['backdrop_path']}"
+                if movie.get("backdrop_path")
+                else None
+            ),
+
             "release_date": movie.get("release_date"),
             "language": movie.get("original_language"),
 
@@ -327,6 +333,13 @@ class TMDBProvider:
                 f"https://image.tmdb.org/t/p/w500"
                 f"{series['poster_path']}"
                 if series.get("poster_path")
+                else None
+            ),
+
+            "backdrop_url": (
+                f"https://image.tmdb.org/t/p/w1280"
+                f"{series['backdrop_path']}"
+                if series.get("backdrop_path")
                 else None
             ),
 

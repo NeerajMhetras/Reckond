@@ -13,6 +13,7 @@ class MediaResponse(BaseModel):
     title: str
     description: str | None
     poster_url: str | None
+    backdrop_url: str | None
     release_date: date | None
     media_type: MediaType
     language: str | None

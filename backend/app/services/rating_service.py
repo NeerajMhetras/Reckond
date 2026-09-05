@@ -6,6 +6,7 @@ from app.models.media.entertainment import Entertainment
 from app.models.user.user import User
 
 from app.utils.media_serializer import build_media_response
+from app.core.cache import cache, recommendation_cache_key
 
 
 def create_or_update_rating(
@@ -58,6 +59,8 @@ def create_or_update_rating(
         db.add(rating)
         db.commit()
         db.refresh(rating)
+
+    cache.delete(recommendation_cache_key(user.id))
 
     return {
         "id": rating.id,
@@ -155,6 +158,7 @@ def delete_rating(
 
     db.delete(rating)
     db.commit()
+    cache.delete(recommendation_cache_key(user.id))
 
     return {
         "message": "Rating deleted successfully"

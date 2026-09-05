@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     GOOGLE_BOOKS_API_KEY: str
     IGDB_CLIENT_ID: str
     IGDB_CLIENT_SECRET_KEY: str
+    VALKEY_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str | None = None
+    RECOMMENDATION_CACHE_TTL: int = 300
 
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
