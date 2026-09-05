@@ -129,6 +129,62 @@ def get_collaborative_similar_items(
 
     return similarities[:limit]
 
+def get_collaborative_recommendations(
+    db: Session,
+    user_id: int,
+    limit: int = 20
+):
+    matrix = build_rating_matrix(db)
+    item_vectors = build_item_vectors(matrix)
+    user_averages = build_user_averages(matrix)
+
+    user_ratings = matrix.get(user_id)
+
+    if not user_ratings:
+        return []
+
+    recommendations = defaultdict(float)
+
+    rated_items = set(user_ratings.keys())
+
+    for item_id, user_rating in user_ratings.items():
+
+        # We don't want low-rated items to influence
+        # recommendations too much.
+        if user_rating < 7:
+            continue
+
+        target_vector = item_vectors.get(item_id)
+
+        if not target_vector:
+            continue
+
+        for other_item_id, other_vector in item_vectors.items():
+
+            # User already rated this item.
+            if other_item_id in rated_items:
+                continue
+
+            similarity = cosine_similarity(
+                target_vector,
+                other_vector,
+                user_averages
+            )
+
+            if similarity <= 0:
+                continue
+
+            recommendations[other_item_id] += (
+                similarity * user_rating
+            )
+
+    ranked = sorted(
+        recommendations.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    return ranked[:limit]
 
 def build_user_averages(matrix):
 

@@ -9,6 +9,8 @@ from app.models.interactions.rating import Rating
 from app.recommendation.content_based import get_similar_media
 from app.recommendation.popularity import get_popular_media
 
+from app.recommendation.collaborative import get_collaborative_recommendations
+
 from app.utils.media_serializer import build_media_response
 
 
@@ -47,14 +49,6 @@ def recommend_for_user(
         .all()
     )
 
-    if not ratings:
-
-        return get_popular_media(
-            db=db,
-            user_id=user_id,
-            limit=limit
-        )
-
     # --------------------------------
     # Get user's entertainment logs
     # --------------------------------
@@ -66,7 +60,6 @@ def recommend_for_user(
         )
         .all()
     )
-    
 
     # --------------------------------
     # Items user has already seen
@@ -84,16 +77,21 @@ def recommend_for_user(
     )
 
     # --------------------------------
-    # Find highly-rated items
+    # No ratings → popularity fallback
     # --------------------------------
 
-    
+    if not ratings:
+        return get_popular_media(
+            db=db,
+            user_id=user_id,
+            limit=limit
+        )
 
-    # --------------------------------
-    # Generate recommendation scores
-    # --------------------------------
+    # ================================================
+    # CONTENT-BASED SCORES
+    # ================================================
 
-    recommendation_scores = defaultdict(float)
+    content_scores = defaultdict(float)
 
     for rating in ratings:
 
@@ -101,8 +99,7 @@ def recommend_for_user(
             rating.rating
         )
 
-        # A rating of 5 has no positive or negative
-        # influence on recommendations.
+        # Rating of 5 has no influence
         if rating_weight == 0:
             continue
 
@@ -120,16 +117,140 @@ def recommend_for_user(
             if media.id in seen_ids:
                 continue
 
-            recommendation_scores[media.id] += (
+            content_scores[media.id] += (
                 similarity * rating_weight
             )
 
-    if not recommendation_scores:
-        return []
+    # ================================================
+    # COLLABORATIVE SCORES
+    # ================================================
 
-    # --------------------------------
-    # Rank recommendations
-    # --------------------------------
+    collaborative_results = (
+        get_collaborative_recommendations(
+            db=db,
+            user_id=user_id,
+            limit=50
+        )
+    )
+
+    collaborative_scores = {
+        media_id: score
+        for media_id, score in collaborative_results
+        if media_id not in seen_ids
+    }
+
+    # ================================================
+    # NORMALIZE CONTENT SCORES
+    # ================================================
+
+    if content_scores:
+
+        max_content = max(
+            content_scores.values()
+        )
+
+        min_content = min(
+            content_scores.values()
+        )
+
+        if max_content != min_content:
+
+            content_scores = {
+                media_id:
+                (score - min_content)
+                / (max_content - min_content)
+
+                for media_id, score
+                in content_scores.items()
+            }
+
+        else:
+
+            content_scores = {
+                media_id: 1.0
+                for media_id in content_scores
+            }
+
+    # ================================================
+    # NORMALIZE COLLABORATIVE SCORES
+    # ================================================
+
+    if collaborative_scores:
+
+        max_collaborative = max(
+            collaborative_scores.values()
+        )
+
+        min_collaborative = min(
+            collaborative_scores.values()
+        )
+
+        if max_collaborative != min_collaborative:
+
+            collaborative_scores = {
+                media_id:
+                (score - min_collaborative)
+                / (max_collaborative - min_collaborative)
+
+                for media_id, score
+                in collaborative_scores.items()
+            }
+
+        else:
+
+            collaborative_scores = {
+                media_id: 1.0
+                for media_id in collaborative_scores
+            }
+
+    # ================================================
+    # COMBINE CANDIDATES
+    # ================================================
+
+    candidate_ids = (
+        set(content_scores.keys())
+        |
+        set(collaborative_scores.keys())
+    )
+
+    if not candidate_ids:
+        return get_popular_media(
+            db=db,
+            user_id=user_id,
+            limit=limit
+        )
+
+    # ================================================
+    # HYBRID SCORE
+    # ================================================
+
+    recommendation_scores = {}
+
+    for media_id in candidate_ids:
+
+        content_score = content_scores.get(
+            media_id,
+            0.0
+        )
+
+        collaborative_score = collaborative_scores.get(
+            media_id,
+            0.0
+        )
+
+        hybrid_score = (
+            0.7 * content_score
+            +
+            0.3 * collaborative_score
+        )
+
+        recommendation_scores[media_id] = (
+            hybrid_score
+        )
+
+    # ================================================
+    # RANK
+    # ================================================
 
     ranked = sorted(
         recommendation_scores.items(),
