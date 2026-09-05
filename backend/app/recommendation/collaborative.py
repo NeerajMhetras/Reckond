@@ -34,15 +34,18 @@ def build_item_vectors(matrix):
 
 def cosine_similarity(
     vector_a: dict,
-    vector_b: dict
+    vector_b: dict,
+    user_averages: dict,
+    min_common_users: int = 3
 ):
+
     common_users = (
         set(vector_a.keys())
         &
         set(vector_b.keys())
     )
 
-    if not common_users:
+    if len(common_users) < min_common_users:
         return 0.0
 
     dot_product = 0.0
@@ -51,8 +54,15 @@ def cosine_similarity(
 
     for user_id in common_users:
 
-        rating_a = vector_a[user_id]
-        rating_b = vector_b[user_id]
+        rating_a = (
+            vector_a[user_id]
+            - user_averages[user_id]
+        )
+
+        rating_b = (
+            vector_b[user_id]
+            - user_averages[user_id]
+        )
 
         dot_product += rating_a * rating_b
 
@@ -62,7 +72,15 @@ def cosine_similarity(
     if magnitude_a == 0 or magnitude_b == 0:
         return 0.0
 
-    return dot_product / (sqrt(magnitude_a) * sqrt(magnitude_b))
+    return (
+        dot_product
+        /
+        (
+            sqrt(magnitude_a)
+            *
+            sqrt(magnitude_b)
+        )
+    )
 
 
 def get_collaborative_similar_items(
@@ -70,9 +88,12 @@ def get_collaborative_similar_items(
     entertainment_id: int,
     limit: int = 20
 ):
+
     matrix = build_rating_matrix(db)
 
     item_vectors = build_item_vectors(matrix)
+
+    user_averages = build_user_averages(matrix)
 
     target_vector = item_vectors.get(
         entertainment_id
@@ -90,7 +111,8 @@ def get_collaborative_similar_items(
 
         score = cosine_similarity(
             target_vector,
-            vector
+            vector,
+            user_averages
         )
 
         if score <= 0:
@@ -106,3 +128,20 @@ def get_collaborative_similar_items(
     )
 
     return similarities[:limit]
+
+
+def build_user_averages(matrix):
+
+    averages = {}
+
+    for user_id, ratings in matrix.items():
+
+        if not ratings:
+            continue
+
+        averages[user_id] = (
+            sum(ratings.values())
+            / len(ratings)
+        )
+
+    return averages
