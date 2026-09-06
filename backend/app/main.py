@@ -1,8 +1,6 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from sqlalchemy import text
-from app.database.database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers.auth import router as auth_router
@@ -26,6 +24,7 @@ from app.models.interactions.watchlist import Watchlist
 from app.models.interactions.rating import Rating
 from app.models.interactions.review import Review
 from app.core.redis import check_redis, close_redis
+from app.core.config import settings
 
 
 @asynccontextmanager
@@ -48,6 +47,7 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
+        settings.FRONTEND_URL,
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -64,7 +64,6 @@ app.include_router(rating_router)
 app.include_router(review_router)
 app.include_router(recommendation_router)
 
-Base.metadata.create_all(bind=engine)
 
 
 
