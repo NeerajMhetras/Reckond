@@ -68,62 +68,54 @@ class TMDBProvider:
         return self._normalize_series_search_results(data)
 
     @tmdb_retry
-    async def get_series_details(self, series_id: str):
-    
-            url = f"https://api.themoviedb.org/3/tv/{series_id}"
-    
-            params = {
-                "api_key": self.api_key,
-                "append_to_response": "credits,keywords"
-            }
-    
-            transport = httpx.AsyncHTTPTransport(
-                local_address="0.0.0.0"
-            )
-    
+    async def get_series_details(
+        self,
+        series_id: str,
+        client: httpx.AsyncClient | None = None,
+    ):
+        url = f"https://api.themoviedb.org/3/tv/{series_id}"
+        params = {
+            "api_key": self.api_key,
+            "append_to_response": "credits,keywords",
+        }
+
+        if client is None:
+            transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
             async with httpx.AsyncClient(
                 transport=transport,
-                timeout=100.0
-            ) as client:
-    
-                response = await client.get(
-                    url,
-                    params=params
-                )
-    
-            response.raise_for_status()
-    
-            data = response.json()
+                timeout=100.0,
+            ) as request_client:
+                response = await request_client.get(url, params=params)
+        else:
+            response = await client.get(url, params=params)
 
-            return self._normalize_series_details(data)
+        response.raise_for_status()
+        return self._normalize_series_details(response.json())
 
     @tmdb_retry
-    async def get_movie_details(self, movie_id: str):
-            url = f"https://api.themoviedb.org/3/movie/{movie_id}"
-    
-            params = {
-                "api_key": self.api_key,
-                "append_to_response": "credits,keywords",
-            }
-    
-            transport = httpx.AsyncHTTPTransport(
-                local_address="0.0.0.0"
-            )
-    
+    async def get_movie_details(
+        self,
+        movie_id: str,
+        client: httpx.AsyncClient | None = None,
+    ):
+        url = f"https://api.themoviedb.org/3/movie/{movie_id}"
+        params = {
+            "api_key": self.api_key,
+            "append_to_response": "credits,keywords",
+        }
+
+        if client is None:
+            transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
             async with httpx.AsyncClient(
                 transport=transport,
-                timeout=100.0
-            ) as client:
-    
-                response = await client.get(
-                    url,
-                    params=params
-                )
-    
-            response.raise_for_status()
-    
-            data = response.json()
-            return self._normalize_movie_details(data)
+                timeout=100.0,
+            ) as request_client:
+                response = await request_client.get(url, params=params)
+        else:
+            response = await client.get(url, params=params)
+
+        response.raise_for_status()
+        return self._normalize_movie_details(response.json())
 
     def _normalize_movie_search_results(self, movie: dict) -> SearchResult:
 
