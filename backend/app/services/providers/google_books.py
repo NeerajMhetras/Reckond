@@ -1,6 +1,26 @@
 import httpx
 from app.schemas.media.entertainment import MediaType
 from datetime import date
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+
+
+def should_retry_google_books(error: BaseException) -> bool:
+    if isinstance(error, (httpx.ConnectError, httpx.TimeoutException)):
+        return True
+    return (
+        isinstance(error, httpx.HTTPStatusError)
+        and error.response.status_code in (429, 500, 502, 503, 504)
+    )
+
+
+google_books_retry = retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    retry=retry_if_exception(should_retry_google_books),
+    reraise=True,
+)
+
+
 class GoogleBooksProvider:
 
     BASE_URL = "https://www.googleapis.com/books/v1"
@@ -8,25 +28,37 @@ class GoogleBooksProvider:
     def __init__(self, api_key: str):
         self.api_key = api_key
 
-    async def search_book(self, query: str):
+    @google_books_retry
+    async def search_book(
+        self,
+        query: str,
+        client: httpx.AsyncClient | None = None,
+        start_index: int = 0,
+        max_results: int = 40,
+    ):
 
         url = f"{self.BASE_URL}/volumes"
 
         params = {
             "q": query,
-            "key": self.api_key
+            "key": self.api_key,
+            "startIndex": start_index,
+            "maxResults": min(max_results, 40),
         }
 
-        async with httpx.AsyncClient(
-            timeout=30.0
-        ) as client:
-
-            response = await client.get(
-                url,
-                params=params
-            )
+        if client is None:
+            async with httpx.AsyncClient(timeout=30.0) as request_client:
+                response = await request_client.get(url, params=params)
+        else:
+            response = await client.get(url, params=params)
 
         if response.status_code != 200:
+            if response.status_code == 429 or response.status_code >= 500:
+                raise httpx.HTTPStatusError(
+                    "Retryable Google Books response",
+                    request=response.request,
+                    response=response,
+                )
             print("Google Books status:", response.status_code)
             print("Google Books response:", response.text)
         response.raise_for_status()
@@ -56,7 +88,12 @@ class GoogleBooksProvider:
 
         return results
 
-    async def get_book_details(self, book_id: str):
+    @google_books_retry
+    async def get_book_details(
+        self,
+        book_id: str,
+        client: httpx.AsyncClient | None = None,
+    ):
 
         url = f"{self.BASE_URL}/volumes/{book_id}"
 
@@ -64,13 +101,17 @@ class GoogleBooksProvider:
             "key": self.api_key
         }
 
-        async with httpx.AsyncClient(
-            timeout=30.0
-        ) as client:
+        if client is None:
+            async with httpx.AsyncClient(timeout=30.0) as request_client:
+                response = await request_client.get(url, params=params)
+        else:
+            response = await client.get(url, params=params)
 
-            response = await client.get(
-                url,
-                params=params
+        if response.status_code == 429 or response.status_code >= 500:
+            raise httpx.HTTPStatusError(
+                "Retryable Google Books response",
+                request=response.request,
+                response=response,
             )
 
         response.raise_for_status()

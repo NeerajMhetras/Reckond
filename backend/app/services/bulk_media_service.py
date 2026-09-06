@@ -8,6 +8,8 @@ from app.models.media.common.genre import Genre
 from app.models.media.common.keyword import Keyword
 from app.models.media.common.person import Person
 from app.models.media.entertainment import Entertainment, MediaType
+from app.models.media.game.game import GameDetails, Platform, game_platforms
+from app.models.media.book.book import Author, BookDetails, book_authors
 from app.models.media.movie.associations import movie_genres, movie_keywords
 from app.models.media.movie.cast import MovieCast
 from app.models.media.movie.crew import MovieCrew
@@ -22,8 +24,8 @@ class BulkMediaService:
     """Persist already-fetched provider payloads in database-sized batches.
 
     The normal MediaService path intentionally remains item-oriented for API
-    imports. This service only handles TMDB movie and series payloads so API
-    fetching can stay outside the database transaction.
+    imports. API fetching stays outside the database transaction, and each
+    catalog type uses its own persistence mapping.
     """
 
     def get_existing_external_ids(
@@ -112,6 +114,224 @@ class BulkMediaService:
                 for item in pending_items
             )
 
+        return results
+
+    def bulk_import_games(
+        self,
+        db: Session,
+        media_items: list[dict],
+    ) -> list[dict]:
+        return self._bulk_import_simple_media(
+            db=db,
+            media_items=media_items,
+            media_type=MediaType.GAME,
+            source="IGDB",
+            detail_model=GameDetails,
+            detail_rows=lambda media, entertainment_id: {
+                "entertainment_id": entertainment_id
+            },
+            lookup_model=Platform,
+            lookup_values=lambda item: item.get("platforms", []),
+            association_table=game_platforms,
+            detail_id_key="game_id",
+            lookup_id_key="platform_id",
+        )
+
+    def bulk_import_books(
+        self,
+        db: Session,
+        media_items: list[dict],
+    ) -> list[dict]:
+        return self._bulk_import_simple_media(
+            db=db,
+            media_items=media_items,
+            media_type=MediaType.BOOK,
+            source="GOOGLE_BOOKS",
+            detail_model=BookDetails,
+            detail_rows=lambda media, entertainment_id: {
+                "entertainment_id": entertainment_id,
+                "isbn": media.get("isbn"),
+                "pages": media.get("pages"),
+                "publisher": media.get("publisher"),
+            },
+            lookup_model=Author,
+            lookup_values=lambda item: item.get("authors", []),
+            association_table=book_authors,
+            detail_id_key="book_id",
+            lookup_id_key="author_id",
+        )
+
+    def _bulk_import_simple_media(
+        self,
+        db: Session,
+        media_items: list[dict],
+        media_type: MediaType,
+        source: str,
+        detail_model,
+        detail_rows,
+        lookup_model,
+        lookup_values,
+        association_table,
+        detail_id_key: str,
+        lookup_id_key: str,
+    ) -> list[dict]:
+        items_by_external_id = {
+            str(item["external_id"]): item
+            for item in media_items
+            if item.get("external_id") and item.get("title")
+        }
+        if not items_by_external_id:
+            return []
+
+        external_ids = list(items_by_external_id)
+        existing_ids = {
+            str(external_id)
+            for external_id in db.execute(
+                select(Entertainment.external_id).where(
+                    Entertainment.external_source == source,
+                    Entertainment.external_id.in_(external_ids),
+                )
+            ).scalars()
+        }
+        results = [
+            {
+                "external_id": external_id,
+                "title": items_by_external_id[external_id].get("title"),
+                "status": "skipped",
+            }
+            for external_id in existing_ids
+        ]
+        pending_items = [
+            item
+            for external_id, item in items_by_external_id.items()
+            if external_id not in existing_ids
+        ]
+        if not pending_items:
+            return results
+
+        try:
+            entertainment_rows = [
+                {
+                    "title": item["title"],
+                    "description": item.get("description"),
+                    "poster_url": item.get("poster_url"),
+                    "backdrop_url": item.get("backdrop_url") or item.get("poster_url"),
+                    "release_date": item.get("release_date"),
+                    "media_type": media_type,
+                    "language": item.get("language"),
+                    "external_id": str(item["external_id"]),
+                    "external_source": source,
+                }
+                for item in pending_items
+            ]
+            db.execute(
+                pg_insert(Entertainment)
+                .values(entertainment_rows)
+                .on_conflict_do_nothing(
+                    index_elements=["external_source", "external_id"]
+                )
+            )
+            entertainment_by_external_id = {
+                str(media.external_id): media
+                for media in db.execute(
+                    select(Entertainment).where(
+                        Entertainment.external_source == source,
+                        Entertainment.external_id.in_(external_ids),
+                    )
+                ).scalars()
+            }
+            detail_values = [
+                detail_rows(
+                    item,
+                    entertainment_by_external_id[str(item["external_id"])].id,
+                )
+                for item in pending_items
+            ]
+            db.execute(
+                pg_insert(detail_model)
+                .values(detail_values)
+                .on_conflict_do_nothing(index_elements=["entertainment_id"])
+            )
+            detail_by_entertainment_id = {
+                detail.entertainment_id: detail
+                for detail in db.execute(
+                    select(detail_model).where(
+                        detail_model.entertainment_id.in_(
+                            [row["entertainment_id"] for row in detail_values]
+                        )
+                    )
+                ).scalars()
+            }
+
+            lookup_names = {
+                str(value)
+                for item in pending_items
+                for value in lookup_values(item)
+                if value
+            }
+            existing_lookup = {
+                row.name: row
+                for row in db.execute(
+                    select(lookup_model).where(lookup_model.name.in_(lookup_names))
+                ).scalars()
+            }
+            missing_lookup = [
+                {"name": name}
+                for name in lookup_names
+                if name not in existing_lookup
+            ]
+            if missing_lookup:
+                db.execute(
+                    pg_insert(lookup_model)
+                    .values(missing_lookup)
+                    .on_conflict_do_nothing()
+                )
+            lookup_by_name = {
+                row.name: row.id
+                for row in db.execute(
+                    select(lookup_model).where(lookup_model.name.in_(lookup_names))
+                ).scalars()
+            }
+
+            association_rows = []
+            for item in pending_items:
+                detail = detail_by_entertainment_id[
+                    entertainment_by_external_id[str(item["external_id"])].id
+                ]
+                for value in lookup_values(item):
+                    if value and str(value) in lookup_by_name:
+                        association_rows.append(
+                            {
+                                detail_id_key: detail.id,
+                                lookup_id_key: lookup_by_name[str(value)],
+                            }
+                        )
+            if association_rows:
+                db.execute(
+                    pg_insert(association_table)
+                    .values(association_rows)
+                    .on_conflict_do_nothing()
+                )
+            db.commit()
+            results.extend(
+                {
+                    "external_id": str(item["external_id"]),
+                    "title": item.get("title"),
+                    "status": "imported",
+                }
+                for item in pending_items
+            )
+        except Exception as error:
+            db.rollback()
+            results.extend(
+                {
+                    "external_id": str(item["external_id"]),
+                    "title": item.get("title"),
+                    "status": "failed",
+                    "error": str(error),
+                }
+                for item in pending_items
+            )
         return results
 
     def _persist_batch(
