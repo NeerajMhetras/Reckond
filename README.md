@@ -291,20 +291,24 @@ Reckond/
 │   │   ├── recommendation/
 │   │   ├── schemas/
 │   │   ├── services/providers/
+│   │   ├── scripts/
+│   │   │   ├── bulk_import_tmdb.py
+│   │   │   ├── bulk_import_igdb.py
+│   │   │   └── bulk_import_google_books.py
 │   │   └── utils/
 │   ├── alembic/
 │   ├── requirements.txt
 │   └── reset_db.py
 └── frontend/
-		└── entertainment-system/
-				├── public/
-				├── src/
-				│   ├── components/
-				│   ├── hooks/
-				│   ├── pages/
-				│   └── services/
-				├── package.json
-				└── vite.config.js
+    └── entertainment-system/
+        ├── public/
+        ├── src/
+        │   ├── components/
+        │   ├── hooks/
+        │   ├── pages/
+        │   └── services/
+        ├── package.json
+        └── vite.config.js
 ```
 
 ## Setup
@@ -370,6 +374,58 @@ redis-cli ping
 
 The expected response is `PONG` when the service is available. The repository does not include Docker Compose or a deployment configuration.
 
+### Catalog seeding
+
+The catalog seed scripts use the provider APIs for fetching and `BulkMediaService` for batched PostgreSQL persistence. They do not create users, ratings, reviews, watchlists, or entertainment logs.
+
+Each importer:
+
+- Reuses a provider and HTTP client where supported.
+- Controls API concurrency with a configurable semaphore.
+- Deduplicates provider results before persistence.
+- Checks existing records by `(external_source, external_id)` and skips them.
+- Uses bulk inserts and one transaction per database batch.
+- Reports imported, skipped, and failed items without stopping the whole import for one API failure.
+
+Run a small IGDB test first:
+
+```bash
+cd backend
+python -m app.scripts.bulk_import_igdb \
+	--limit 5 \
+	--concurrency 5 \
+	--batch-size 5
+```
+
+Run the full IGDB catalog seed:
+
+```bash
+python -m app.scripts.bulk_import_igdb \
+	--limit 200 \
+	--concurrency 5 \
+	--batch-size 25
+```
+
+Run a small Google Books test:
+
+```bash
+python -m app.scripts.bulk_import_google_books \
+	--limit 5 \
+	--concurrency 5 \
+	--batch-size 5
+```
+
+Run the full Google Books catalog seed:
+
+```bash
+python -m app.scripts.bulk_import_google_books \
+	--limit 200 \
+	--concurrency 5 \
+	--batch-size 25
+```
+
+The Google Books importer searches several subject categories, deduplicates volume IDs, fetches normalized details, and stores supported book metadata plus authors. The IGDB importer obtains a ranked batch of popular games and stores supported game metadata plus platforms. Neither importer calls the normal single-item `MediaService.import_media()` path.
+
 ### Frontend
 
 ```bash
@@ -426,7 +482,23 @@ The values above are illustrative; the field names and response shape follow `Re
 
 ## Performance
 
-Recommendation responses are cached in Redis/Valkey with a configurable five-minute default TTL. The TF-IDF representation is also reused in process memory until the ordered media ID list changes. No benchmark data is currently published.
+Recommendation responses are cached in Redis/Valkey with a configurable five-minute default TTL. The TF-IDF representation is also reused in process memory until the ordered media ID list changes.
+
+Bulk catalog import performance depends on provider response time and the remote database. The optimized path reduces per-item ORM queries, flushes, and commits by fetching provider data separately and persisting catalog rows in batches.
+
+Observed Google Books run:
+
+| Metric | Result |
+|---|---:|
+| Requested | 200 |
+| Unique candidates | 199 |
+| Details fetched | 197 |
+| Imported | 192 |
+| Skipped | 5 |
+| Failed | 2 |
+| Elapsed time | 91.8 seconds |
+
+The IGDB importer is implemented with the same batched persistence architecture, but no completed IGDB benchmark is recorded here yet. These are observed run results, not performance guarantees.
 
 ## Security
 
@@ -450,20 +522,23 @@ No screenshots are currently committed. The frontend does include a hero image a
 - FastAPI endpoints for the implemented user and media workflows.
 - TMDB, Google Books, and IGDB provider integrations.
 - Hybrid recommendation scoring and Redis/Valkey recommendation caching.
+- Resumable bulk catalog importers for TMDB, IGDB games, and Google Books books.
+- Batch persistence for game platforms and book authors through `BulkMediaService`.
 
 ### In progress or incomplete
 
-- Alembic migrations do not yet provide a dependable fresh-database setup.
 - Password-reset model exists without password-reset API/service/frontend flows.
 - Conventional automated recommendation test coverage is not established; the `test_*.py` files in the recommendation package are executable scripts rather than a documented pytest suite.
 - Cache invalidation is not connected to watchlist, review, or media-import mutations.
+- The Google Books seed run recorded two failed detail fetches; failed items are reported and can be retried on a later run.
+- IGDB bulk-import performance and second-run idempotency have not been benchmarked in this environment.
 
 ### Planned improvements
 
-- Repair and verify the migration history.
 - Add recommendation evaluation metrics, broader automated tests, and better cold-start and diversity handling.
 - Add a complete password-reset workflow and refresh-token revocation strategy.
 - Add production deployment documentation and provider/API health monitoring.
+- Add persistent import reports and retry queues for provider failures.
 
 ## License
 
