@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://reckond.onrender.com/'
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL
+  || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : 'https://reckond.onrender.com')
+).replace(/\/$/, '')
 const tokenKey = 'reckond_tokens'
 
 function getTokens() {
