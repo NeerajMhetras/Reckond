@@ -8,12 +8,9 @@ from app.database.dependencies import get_db
 from app.core.security import get_current_user
 
 from app.models.user.user import User
-from app.models.media.entertainment import Entertainment
-from app.utils.media_serializer import build_media_response
 
 from app.recommendation.recommender import recommend_for_user
 from app.schemas.recommendation.recommendation import RecommendationResponse
-from app.schemas.recommendation.recommendation import CollaborativeRecommendation
 
 from app.recommendation.collaborative import (
     get_collaborative_recommendations

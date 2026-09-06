@@ -4,7 +4,8 @@ import { navigate } from '../../hooks/useHashRoute'
 export function Header({ user, onLogout, searchValue, setSearchValue }) {
   const submitSearch = (event) => {
     event.preventDefault()
-    if (searchValue.trim()) navigate('/search')
+    const query = searchValue.trim()
+    if (query) navigate(`/search?query=${encodeURIComponent(query)}`)
   }
 
   return <header className="topbar">

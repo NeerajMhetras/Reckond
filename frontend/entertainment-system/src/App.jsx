@@ -14,7 +14,9 @@ import './App.css'
 function App() {
   const route = useHashRoute()
   const [routePath, queryString = ''] = route.split('?')
-  const mediaType = new URLSearchParams(queryString).get('type') || ''
+  const routeParams = new URLSearchParams(queryString)
+  const mediaType = routeParams.get('type') || ''
+  const searchQuery = routeParams.get('query') || ''
   const [user, setUser] = useState(getStoredUser())
   const [searchValue, setSearchValue] = useState('')
   const logout = () => { clearSession(); setUser(null); navigate('/') }
@@ -23,7 +25,7 @@ function App() {
     <Header user={user} onLogout={logout} searchValue={searchValue} setSearchValue={setSearchValue} />
     <main>
       {routePath === '/' && <HomePage user={user} mediaType={mediaType} />}
-      {routePath === '/search' && <SearchPage initialQuery={searchValue} />}
+      {routePath === '/search' && <SearchPage key={searchQuery} initialQuery={searchQuery || searchValue} />}
       {routePath.startsWith('/media/') && <MediaDetailsPage id={routePath.split('/')[2]} user={user} />}
       {routePath === '/watchlist' && <WatchlistPage user={user} />}
       {routePath === '/profile' && <ProfilePage user={user} />}

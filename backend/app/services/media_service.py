@@ -48,7 +48,7 @@ class MediaService:
         if media_type in [MediaType.MOVIE,MediaType.SERIES]:
             external_source = "TMDB"
         elif media_type == MediaType.BOOK:
-            external_source = "GoogleBooks"
+            external_source = "GOOGLE_BOOKS"
         else:
             external_source = "IGDB"
 
@@ -72,7 +72,7 @@ class MediaService:
                 else:
                     media_data = await self.tmdb_provider.get_series_details(external_id)
 
-                existing.backdrop_url = media_data.get("backdrop_url")
+                existing.backdrop_url = media_data.get("backdrop_url") or existing.poster_url
                 db.commit()
                 db.refresh(existing)
 
@@ -92,7 +92,7 @@ class MediaService:
                 title=media_data["title"],
                 description=media_data.get("description"),
                 poster_url=media_data.get("poster_url"),
-                backdrop_url=media_data.get("backdrop_url"),
+                backdrop_url=media_data.get("backdrop_url") or media_data.get("poster_url"),
                 release_date=media_data.get("release_date"),
                 media_type=MediaType.MOVIE,
                 language=media_data.get("language"),
@@ -235,7 +235,7 @@ class MediaService:
                 title=media_data["title"],
                 description=media_data.get("description"),
                 poster_url=media_data.get("poster_url"),
-                backdrop_url=media_data.get("backdrop_url"),
+                backdrop_url=media_data.get("backdrop_url") or media_data.get("poster_url"),
                 release_date=media_data.get("release_date"),
                 media_type=MediaType.SERIES,
                 language=media_data.get("language"),
@@ -373,6 +373,7 @@ class MediaService:
                 title = media_data["title"],
                 description=media_data.get("description"),
                 poster_url=media_data.get("poster_url"),
+                backdrop_url=media_data.get("poster_url"),
                 release_date=media_data.get("release_date"),
                 media_type=MediaType.BOOK,
                 language=media_data.get("language"),
@@ -418,6 +419,7 @@ class MediaService:
                 title = media_data["title"],
                 description=media_data.get("description"),
                 poster_url=media_data.get("poster_url"),
+                backdrop_url=media_data.get("poster_url"),
                 release_date=media_data.get("release_date"),
                 media_type=MediaType.GAME,
                 language=media_data.get("language"),

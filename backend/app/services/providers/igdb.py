@@ -24,10 +24,12 @@ class IGDBProvider:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 self.TOKEN_URL,
-                params=params,
+                data=params,
             )
 
-        response.raise_for_status()
+        if response.is_error:
+            detail = response.json().get("message", "IGDB authentication failed")
+            raise RuntimeError(detail)
 
         data = response.json()
         self.access_token = data["access_token"]

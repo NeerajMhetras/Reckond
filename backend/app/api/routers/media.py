@@ -27,7 +27,7 @@ tmdb = TMDBProvider(settings.TMDB_API_KEY)
 google_books = GoogleBooksProvider(settings.GOOGLE_BOOKS_API_KEY)
 igdb = IGDBProvider(
     client_id=settings.IGDB_CLIENT_ID,
-    client_secret=settings.SECRET_KEY
+    client_secret=settings.IGDB_CLIENT_SECRET_KEY
 )
 
 
@@ -73,6 +73,9 @@ async def search_media(
     except ValueError as e:
         raise HTTPException(status_code=400,
                             detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=502,
+                            detail=f"Game provider unavailable: {e}")
 
 
 @router.post("/import", response_model=MediaResponse)
